@@ -1,5 +1,4 @@
 {
-  "description": "Oz parent-message delivery bridge for Codex child runs",
   "hooks": {
     "SessionStart": [
       {
