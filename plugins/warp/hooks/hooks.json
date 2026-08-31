@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-session-start.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-session-start.sh\""
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-stop.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-stop.sh\""
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-permission-request.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-permission-request.sh\""
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-prompt-submit.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-prompt-submit.sh\""
           }
         ]
       }
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-post-tool-use.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-post-tool-use.sh\""
           }
         ]
       }

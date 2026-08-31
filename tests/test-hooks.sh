@@ -228,11 +228,51 @@ assert_file_exists "github workflow exists" "$REPO_ROOT/.github/workflows/test.y
 assert_json_field "marketplace name" "$(cat "$REPO_ROOT/.agents/plugins/marketplace.json")" ".name" "codex-warp"
 assert_json_field "warp plugin name" "$(cat "$REPO_ROOT/plugins/warp/.codex-plugin/plugin.json")" ".name" "warp"
 assert_json_field "oz plugin name" "$(cat "$REPO_ROOT/plugins/orchestration/.codex-plugin/plugin.json")" ".name" "orchestration"
-assert_contains "warp hooks use PLUGIN_ROOT" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" '${PLUGIN_ROOT}/scripts/on-session-start.sh'
-assert_contains "warp hooks include prompt submit" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" '${PLUGIN_ROOT}/scripts/on-prompt-submit.sh'
-assert_contains "warp hooks include post tool use" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" '${PLUGIN_ROOT}/scripts/on-post-tool-use.sh'
-assert_contains "oz hooks use PLUGIN_ROOT" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" '${PLUGIN_ROOT}/scripts/drain-mailbox.sh UserPromptSubmit'
-assert_contains "oz hooks include session end" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" '${PLUGIN_ROOT}/scripts/on-session-end.sh'
+assert_contains "warp hooks use CLAUDE_PLUGIN_ROOT" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" '${CLAUDE_PLUGIN_ROOT}/scripts/on-session-start.sh'
+assert_contains "warp hooks include prompt submit" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" '${CLAUDE_PLUGIN_ROOT}/scripts/on-prompt-submit.sh'
+assert_contains "warp hooks include post tool use" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" '${CLAUDE_PLUGIN_ROOT}/scripts/on-post-tool-use.sh'
+assert_contains "oz hooks use CLAUDE_PLUGIN_ROOT" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" '${CLAUDE_PLUGIN_ROOT}/scripts/drain-mailbox.sh'
+assert_contains "oz hooks include session end" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" '${CLAUDE_PLUGIN_ROOT}/scripts/on-session-end.sh'
+
+echo ""
+echo "=== Codex plugin root contract ==="
+unset OZ_PARENT_RUN_ID
+WARP_PLUGIN_ROOT="$TEST_TMP/warp plugin with spaces"
+ORCHESTRATION_PLUGIN_ROOT="$TEST_TMP/orchestration plugin with spaces"
+ln -s "$REPO_ROOT/plugins/warp" "$WARP_PLUGIN_ROOT"
+ln -s "$REPO_ROOT/plugins/orchestration" "$ORCHESTRATION_PLUGIN_ROOT"
+WARP_HOOKS="$WARP_PLUGIN_ROOT/hooks/hooks.json"
+ORCHESTRATION_HOOKS="$ORCHESTRATION_PLUGIN_ROOT/hooks/hooks.json"
+SESSION_START_COMMAND=$(jq -r '.hooks.SessionStart[0].hooks[0].command' "$WARP_HOOKS")
+STOP_COMMAND=$(jq -r '.hooks.Stop[0].hooks[0].command' "$WARP_HOOKS")
+ORCHESTRATION_START_COMMAND=$(jq -r '.hooks.SessionStart[0].hooks[0].command' "$ORCHESTRATION_HOOKS")
+ORCHESTRATION_STOP_COMMAND=$(jq -r '.hooks.Stop[0].hooks[0].command' "$ORCHESTRATION_HOOKS")
+
+OUTPUT=$(printf '%s' "$HOOK_INPUT" | env -u PLUGIN_ROOT \
+    -u WARP_CLI_AGENT_PROTOCOL_VERSION -u WARP_CLIENT_VERSION \
+    CLAUDE_PLUGIN_ROOT="$WARP_PLUGIN_ROOT" sh -c "$SESSION_START_COMMAND")
+STATUS=$?
+assert_eq "session start resolves CLAUDE_PLUGIN_ROOT" "0" "$STATUS"
+assert_eq "session start stays silent outside Warp" "" "$OUTPUT"
+
+OUTPUT=$(printf '%s' "$HOOK_INPUT" | env -u PLUGIN_ROOT \
+    -u WARP_CLI_AGENT_PROTOCOL_VERSION -u WARP_CLIENT_VERSION \
+    CLAUDE_PLUGIN_ROOT="$WARP_PLUGIN_ROOT" sh -c "$STOP_COMMAND")
+STATUS=$?
+assert_eq "stop resolves CLAUDE_PLUGIN_ROOT" "0" "$STATUS"
+assert_eq "stop stays silent outside Warp" "" "$OUTPUT"
+
+OUTPUT=$(printf '%s' "$HOOK_INPUT" | env -u PLUGIN_ROOT -u OZ_PARENT_RUN_ID \
+    CLAUDE_PLUGIN_ROOT="$ORCHESTRATION_PLUGIN_ROOT" sh -c "$ORCHESTRATION_START_COMMAND")
+STATUS=$?
+assert_eq "orchestration start resolves CLAUDE_PLUGIN_ROOT" "0" "$STATUS"
+assert_eq "orchestration start stays silent outside Oz" "" "$OUTPUT"
+
+OUTPUT=$(printf '%s' "$HOOK_INPUT" | env -u PLUGIN_ROOT -u OZ_PARENT_RUN_ID \
+    CLAUDE_PLUGIN_ROOT="$ORCHESTRATION_PLUGIN_ROOT" sh -c "$ORCHESTRATION_STOP_COMMAND")
+STATUS=$?
+assert_eq "orchestration stop resolves CLAUDE_PLUGIN_ROOT" "0" "$STATUS"
+assert_eq "orchestration stop stays silent outside Oz" "" "$OUTPUT"
 
 
 echo ""

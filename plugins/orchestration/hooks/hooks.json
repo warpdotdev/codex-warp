@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-session-start.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-session-start.sh\""
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/drain-mailbox.sh UserPromptSubmit"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/drain-mailbox.sh\" UserPromptSubmit"
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/drain-mailbox.sh PostToolUse"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/drain-mailbox.sh\" PostToolUse"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-stop.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-stop.sh\""
           }
         ]
       }
@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-session-end.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/on-session-end.sh\""
           }
         ]
       }

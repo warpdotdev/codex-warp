@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Bump on every release; keep in sync with Warp's Codex plugin manager.
-PLUGIN_VERSION="0.4.0"
+PLUGIN_VERSION="0.4.1"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/should-use-structured.sh"

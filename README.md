@@ -17,7 +17,8 @@ tests/test-hooks.sh                       Shell tests
 ## Plugins
 - `warp`: `SessionStart`, `Stop`, `PermissionRequest`, `UserPromptSubmit`, `PostToolUse` notifications for Warp.
 - `orchestration`: `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `Stop`, `SessionEnd` parent-message delivery for Codex child runs, plus Oz skills.
-Hook commands use `${PLUGIN_ROOT}/scripts/...`.
+Hook commands use `${CLAUDE_PLUGIN_ROOT}/scripts/...`, the plugin root provided by
+Codex.
 ## Local install
 ```sh
 codex plugin marketplace add .
@@ -33,7 +34,7 @@ This uses a fake `oz` CLI and a temp `CODEX_HOME`.
 It validates parent-message staging/drain/blocking and plugin manifests.
 ## Versioning
 `plugins/warp/scripts/on-session-start.sh` emits `PLUGIN_VERSION`.
-Current plugin version: `0.4.0`.
+Current plugin version: `0.4.1`.
 Keep it in sync with Warp's Codex plugin manager minimum version.
 ## Skills
 
