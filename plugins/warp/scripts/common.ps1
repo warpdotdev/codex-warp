@@ -13,7 +13,12 @@ function Test-ShouldUseStructured {
 }
 
 function Read-HookInput {
-    return [Console]::In.ReadToEnd()
+    $reader = [System.IO.StreamReader]::new([Console]::OpenStandardInput(), [System.Text.UTF8Encoding]::new($false))
+    try {
+        return $reader.ReadToEnd()
+    } finally {
+        $reader.Dispose()
+    }
 }
 
 function ConvertFrom-JsonSafe {

@@ -22,10 +22,10 @@ function Add-MessageFromWatchRecord {
     $sequence = [int64]$sequenceValue
     $target = Get-StagedMessagePath $StateDir $sequence $messageId
     if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
-        Set-Content -LiteralPath $target -Value $Line -Encoding UTF8
+        [System.IO.File]::WriteAllText($target, $Line + "`n")
     }
 
-    Set-Content -LiteralPath (Get-LastSequenceFile $StateDir) -Value $sequence -Encoding ASCII
+    [System.IO.File]::WriteAllText((Get-LastSequenceFile $StateDir), "$sequence`n")
 }
 
 New-StateDir $StateDir

@@ -1,7 +1,17 @@
 $ErrorActionPreference = "Stop"
 
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+} catch {
+}
+
 function Read-HookInput {
-    return [Console]::In.ReadToEnd()
+    $reader = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), [System.Text.Encoding]::UTF8)
+    try {
+        return $reader.ReadToEnd()
+    } finally {
+        $reader.Dispose()
+    }
 }
 
 function ConvertFrom-JsonSafe {
@@ -254,7 +264,7 @@ function Write-DriverHookAdditionalContext {
         return $null
     }
 
-    $outputObject = ConvertFrom-JsonSafe (Get-Content -Raw -LiteralPath (Get-HookOutputFile $StateDir))
+    $outputObject = ConvertFrom-JsonSafe (Get-Content -Raw -LiteralPath (Get-HookOutputFile $StateDir) -ErrorAction SilentlyContinue)
     $additionalContext = [string](Get-JsonProperty $outputObject "additional_context" "")
     if ([string]::IsNullOrEmpty($additionalContext)) {
         return $null
@@ -366,7 +376,7 @@ function Start-ListenerIfNeeded {
     # spaces, such as the default Windows user and plugin directories.
     $arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" "{1}"' -f $ListenerScript, $StateDir
     $process = Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -WindowStyle Hidden -PassThru
-    Set-Content -LiteralPath (Get-ListenerPidFile $StateDir) -Value $process.Id -Encoding ASCII
+    [System.IO.File]::WriteAllText((Get-ListenerPidFile $StateDir), "$($process.Id)`n")
 }
 
 function Clear-HookState {
@@ -467,7 +477,7 @@ function New-ParentContextFromStagedMessages {
 
     foreach ($stagedFile in Get-SortedStagedMessages $StateDir) {
         $totalStaged += 1
-        $messageObject = ConvertFrom-JsonSafe (Get-Content -Raw -LiteralPath $stagedFile)
+        $messageObject = ConvertFrom-JsonSafe (Get-Content -Raw -LiteralPath $stagedFile -ErrorAction SilentlyContinue)
         $messageId = [string](Get-JsonProperty $messageObject "message_id" "")
         $senderRunId = [string](Get-JsonProperty $messageObject "sender_run_id" "")
         $subject = [string](Get-JsonProperty $messageObject "subject" "")
