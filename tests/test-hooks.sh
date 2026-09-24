@@ -248,7 +248,7 @@ assert_json_field "warp stop uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins
 assert_json_field "warp permission request uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" ".hooks.PermissionRequest[0].hooks[0].commandWindows" 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PLUGIN_ROOT}/scripts/on-permission-request.ps1"'
 assert_json_field "warp prompt submit uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" ".hooks.UserPromptSubmit[0].hooks[0].commandWindows" 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PLUGIN_ROOT}/scripts/on-prompt-submit.ps1"'
 assert_json_field "warp post tool use uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins/warp/hooks/hooks.json")" ".hooks.PostToolUse[0].hooks[0].commandWindows" 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PLUGIN_ROOT}/scripts/on-post-tool-use.ps1"'
-assert_contains "oz hooks use PLUGIN_ROOT" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" '${PLUGIN_ROOT}/scripts/drain-mailbox.sh UserPromptSubmit'
+assert_contains "oz hooks quote PLUGIN_ROOT" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" '\"${PLUGIN_ROOT}/scripts/drain-mailbox.sh\" UserPromptSubmit'
 assert_contains "oz hooks include session end" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" '${PLUGIN_ROOT}/scripts/on-session-end.sh'
 assert_json_field "oz session start uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" ".hooks.SessionStart[0].hooks[0].commandWindows" 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PLUGIN_ROOT}/scripts/on-session-start.ps1"'
 assert_json_field "oz prompt submit uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" ".hooks.UserPromptSubmit[0].hooks[0].commandWindows" 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PLUGIN_ROOT}/scripts/drain-mailbox.ps1" UserPromptSubmit'
@@ -256,6 +256,33 @@ assert_json_field "oz post tool use uses Windows PowerShell" "$(cat "$REPO_ROOT/
 assert_json_field "oz stop uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" ".hooks.Stop[0].hooks[0].commandWindows" 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PLUGIN_ROOT}/scripts/on-stop.ps1"'
 assert_json_field "oz session end uses Windows PowerShell" "$(cat "$REPO_ROOT/plugins/orchestration/hooks/hooks.json")" ".hooks.SessionEnd[0].hooks[0].commandWindows" 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${PLUGIN_ROOT}/scripts/on-session-end.ps1"'
 
+echo ""
+echo "=== plugin roots with spaces ==="
+for plugin_name in warp orchestration; do
+    plugin_root="$TEST_TMP/$plugin_name plugin"
+    ln -s "$REPO_ROOT/plugins/$plugin_name" "$plugin_root"
+
+    while IFS=$'\t' read -r event_name hook_command; do
+        command_output=$(printf '%s' "$HOOK_INPUT" | env \
+            -u WARP_CLI_AGENT_PROTOCOL_VERSION \
+            -u WARP_CLIENT_VERSION \
+            -u OZ_PARENT_RUN_ID \
+            PLUGIN_ROOT="$plugin_root" \
+            sh -c "$hook_command" 2>&1)
+        command_exit=$?
+        assert_eq "$plugin_name $event_name resolves a plugin root containing spaces" "0" "$command_exit"
+        assert_eq "$plugin_name $event_name stays silent outside its host" "" "$command_output"
+    done < <(jq -r '
+        .hooks
+        | to_entries[]
+        | .key as $event
+        | .value[]
+        | .hooks[]
+        | select(.type == "command")
+        | [$event, .command]
+        | @tsv
+    ' "$REPO_ROOT/plugins/$plugin_name/hooks/hooks.json")
+done
 
 echo ""
 echo "=== Results: $PASSED passed, $FAILED failed ==="
