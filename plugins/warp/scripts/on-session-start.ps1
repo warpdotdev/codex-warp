@@ -7,7 +7,7 @@ if (-not (Test-ShouldUseStructured)) {
     exit 0
 }
 
-$pluginVersion = "0.4.1"
+$pluginVersion = "0.4.2"
 $inputJson = Read-HookInput
 $body = New-WarpPayload $inputJson "session_start" @{
     plugin_version = $pluginVersion

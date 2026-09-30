@@ -1,7 +1,7 @@
 {
   "name": "warp",
   "description": "Warp terminal integration for Codex - native notifications, and more to come",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "author": {
     "name": "Warp",
     "url": "https://warp.dev"

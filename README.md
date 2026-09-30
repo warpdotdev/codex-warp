@@ -28,12 +28,39 @@ codex plugin add orchestration@codex-warp
 Fast shell suite:
 ```sh
 bash tests/test-hooks.sh
+bash tests/test-notifications.sh
 ```
 This uses a fake `oz` CLI and a temp `CODEX_HOME`.
 It validates parent-message staging/drain/blocking and plugin manifests.
+The notification suite uses isolated pseudo-terminals to check both inherited
+and detached hook sessions. It requires Python 3 and does not emit notifications
+into your terminal.
+## Notification transport
+The POSIX notifier uses `/dev/tty` when a controlling terminal is available.
+Codex 0.155.0 and later detach hooks from that terminal, so the notifier falls
+back to an ancestor's terminal device. Linux uses `/proc` and `readlink`; macOS
+uses `ps`. Discovery is bounded, only terminal devices are used, and failure
+produces a diagnostic without failing the hook. Notification payloads and the
+Windows transport are unchanged.
+## One-off notifier testing in an Oz Docker task
+Building the Codex CLI sidecar does not include this checkout. The CLI image
+contains Codex itself; Warp normally installs this plugin at runtime.
+For a disposable running Codex task, replace its cached notifier with your
+local copy. Run from this checkout, substituting the task container ID and its
+installed plugin version:
+```sh
+docker cp plugins/warp/scripts/warp-notify.sh <container-id>:/home/agent/.codex/plugins/cache/codex-warp/warp/<version>/scripts/warp-notify.sh
+```
+The tested layout uses `/home/agent` and plugin version `0.4.1`; adjust the path
+if the task uses another home directory or `CODEX_HOME`.
+Send a follow-up to that run and check that its state changes to in-progress,
+then back to succeeded. Hooks execute the script on each invocation, so this
+notifier-only change does not require restarting Codex.
+This modifies only that container's installed copy. It does not publish the
+plugin or make newly created tasks use local changes.
 ## Versioning
 `plugins/warp/scripts/on-session-start.sh` emits `PLUGIN_VERSION`.
-Current plugin version: `0.4.1`.
+Current plugin version: `0.4.2`.
 Keep it in sync with Warp's Codex plugin manager minimum version.
 ## Skills
 
