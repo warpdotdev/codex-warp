@@ -60,7 +60,7 @@ This modifies only that container's installed copy. It does not publish the
 plugin or make newly created tasks use local changes.
 ## Versioning
 `plugins/warp/scripts/on-session-start.sh` emits `PLUGIN_VERSION`.
-Current plugin version: `0.4.1`.
+Current plugin version: `0.4.2`.
 Keep it in sync with Warp's Codex plugin manager minimum version.
 ## Skills
 
