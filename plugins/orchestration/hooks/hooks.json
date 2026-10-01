@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-session-start.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-session-start.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-session-start.ps1\""
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/drain-mailbox.sh UserPromptSubmit",
+            "command": "\"${PLUGIN_ROOT}/scripts/drain-mailbox.sh\" UserPromptSubmit",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/drain-mailbox.ps1\" UserPromptSubmit"
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/drain-mailbox.sh PostToolUse",
+            "command": "\"${PLUGIN_ROOT}/scripts/drain-mailbox.sh\" PostToolUse",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/drain-mailbox.ps1\" PostToolUse"
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-stop.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-stop.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-stop.ps1\""
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-session-end.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-session-end.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-session-end.ps1\""
           }
         ]
