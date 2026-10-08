@@ -38,9 +38,16 @@ function Invoke-PowerShellHook {
         "-File", $ScriptPath
     ) + $ScriptArguments
 
-    $output = @($InputJson | & powershell.exe @powershellArguments 2>&1)
-    if ($LASTEXITCODE -ne 0) {
-        throw "$ScriptPath exited with code $LASTEXITCODE.`n$($output -join "`n")"
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $output = @($InputJson | & powershell.exe @powershellArguments 2>&1)
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    if ($exitCode -ne 0) {
+        throw "$ScriptPath exited with code $exitCode.`n$($output -join "`n")"
     }
 
     return $output

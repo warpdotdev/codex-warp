@@ -13,6 +13,7 @@ plugins/orchestration/hooks/hooks.json
 plugins/orchestration/scripts/            Oz parent-message listener, drain, and lifecycle scripts for POSIX shells and Windows PowerShell
 plugins/orchestration/skills/             Oz orchestration skills
 tests/test-hooks.sh                       Shell tests
+tests/notification_conpty_test.py         Isolated Windows ConPTY delivery tests
 ```
 ## Plugins
 - `warp`: `SessionStart`, `Stop`, `PermissionRequest`, `UserPromptSubmit`, `PostToolUse` notifications for Warp.
@@ -40,8 +41,20 @@ The POSIX notifier uses `/dev/tty` when a controlling terminal is available.
 Codex 0.155.0 and later detach hooks from that terminal, so the notifier falls
 back to an ancestor's terminal device. Linux uses `/proc` and `readlink`; macOS
 uses `ps`. Discovery is bounded, only terminal devices are used, and failure
-produces a diagnostic without failing the hook. Notification payloads and the
-Windows transport are unchanged.
+produces a diagnostic without failing the hook. Notification payloads are unchanged.
+On Windows, the notifier locates a live native Codex ancestor and checks whether
+it shares that process's console. Detached hooks temporarily attach to the Codex
+console while preserving their captured standard streams, then restore their
+previous attachment when another live owner remains. Notifications never go to
+hook stdout; an unavailable console produces a payload-free stderr diagnostic.
+The Windows test suite checks actual OSC delivery on an isolated ConPTY, including
+detached `cmd /C` launches, concurrent hooks, Unicode, and captured control output:
+```sh
+python tests/notification_conpty_test.py -v
+```
+Set `WARP_CONPTY_DLL` to Warp's bundled `conpty.dll` to test its duplex transport
+instead of Windows' system ConPTY. Keep the DLL's companion assets adjacent and
+available on `PATH`.
 ## One-off notifier testing in an Oz Docker task
 Building the Codex CLI sidecar does not include this checkout. The CLI image
 contains Codex itself; Warp normally installs this plugin at runtime.
@@ -60,7 +73,7 @@ This modifies only that container's installed copy. It does not publish the
 plugin or make newly created tasks use local changes.
 ## Versioning
 `plugins/warp/scripts/on-session-start.sh` emits `PLUGIN_VERSION`.
-Current plugin version: `0.4.2`.
+Current plugin version: `0.4.3`.
 Keep it in sync with Warp's Codex plugin manager minimum version.
 ## Skills
 
