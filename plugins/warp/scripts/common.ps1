@@ -122,86 +122,7 @@ function Initialize-WarpConsoleWriter {
         return
     }
 
-    Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-
-public static class WarpConsoleWriter
-{
-    private const uint GenericWrite = 0x40000000;
-    private const uint FileShareRead = 0x00000001;
-    private const uint FileShareWrite = 0x00000002;
-    private const uint OpenExisting = 3;
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr CreateFileW(
-        string fileName,
-        uint desiredAccess,
-        uint shareMode,
-        IntPtr securityAttributes,
-        uint creationDisposition,
-        uint flagsAndAttributes,
-        IntPtr templateFile);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern bool WriteConsoleW(
-        IntPtr consoleOutput,
-        string buffer,
-        uint charsToWrite,
-        out uint charsWritten,
-        IntPtr reserved);
-
-    [DllImport("kernel32.dll")]
-    private static extern bool CloseHandle(IntPtr handle);
-
-    public static bool Write(string message)
-    {
-        IntPtr handle = CreateFileW(
-            "CONOUT$",
-            GenericWrite,
-            FileShareRead | FileShareWrite,
-            IntPtr.Zero,
-            OpenExisting,
-            0,
-            IntPtr.Zero);
-
-        if (handle == new IntPtr(-1))
-        {
-            return false;
-        }
-
-        try
-        {
-            int offset = 0;
-            while (offset < message.Length)
-            {
-                int chunkLength = Math.Min(16384, message.Length - offset);
-                if (offset + chunkLength < message.Length
-                    && char.IsHighSurrogate(message[offset + chunkLength - 1]))
-                {
-                    chunkLength--;
-                }
-
-                string chunk = message.Substring(offset, chunkLength);
-                uint written;
-                if (!WriteConsoleW(handle, chunk, (uint)chunk.Length, out written, IntPtr.Zero)
-                    || written == 0)
-                {
-                    return false;
-                }
-
-                offset += (int)written;
-            }
-
-            return true;
-        }
-        finally
-        {
-            CloseHandle(handle);
-        }
-    }
-}
-"@
+    Add-Type -Path (Join-Path $PSScriptRoot "console-writer.cs")
 }
 
 function Send-WarpNotification {
@@ -216,10 +137,11 @@ function Send-WarpNotification {
 
     try {
         Initialize-WarpConsoleWriter
-        [void][WarpConsoleWriter]::Write($message)
+        if (-not [WarpConsoleWriter]::Write($message)) {
+            [Console]::Error.WriteLine("[codex-warp] notification delivery failed: $([WarpConsoleWriter]::LastError)")
+        }
     } catch {
-        # Hook stdout is reserved for Codex hook control JSON. If there is no
-        # attached console device, drop the notification rather than emitting
-        # OSC text to captured stdout and making the hook fail.
+        # Hook stdout is reserved for Codex hook control JSON, not notification bytes.
+        [Console]::Error.WriteLine("[codex-warp] notification delivery failed: console interop unavailable")
     }
 }

@@ -23,6 +23,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Run PowerShell tests
         shell: powershell
         run: .\tests\test-hooks.ps1
+      - name: Verify ConPTY notification delivery
+        run: python tests/notification_conpty_test.py -v
