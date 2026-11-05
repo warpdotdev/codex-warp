@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-session-start.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-session-start.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-session-start.ps1\""
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-stop.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-stop.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-stop.ps1\""
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-permission-request.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-permission-request.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-permission-request.ps1\""
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-prompt-submit.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-prompt-submit.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-prompt-submit.ps1\""
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${PLUGIN_ROOT}/scripts/on-post-tool-use.sh",
+            "command": "\"${PLUGIN_ROOT}/scripts/on-post-tool-use.sh\"",
             "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${PLUGIN_ROOT}/scripts/on-post-tool-use.ps1\""
           }
         ]
