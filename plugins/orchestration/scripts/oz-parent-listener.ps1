@@ -20,6 +20,12 @@ function Add-MessageFromWatchRecord {
     }
 
     $sequence = [int64]$sequenceValue
+    $previousSequence = 0L
+    $previousValue = Get-Content -Raw -LiteralPath (Get-LastSequenceFile $StateDir) -ErrorAction SilentlyContinue
+    [void][int64]::TryParse($previousValue, [ref]$previousSequence)
+    if ($sequence -le $previousSequence) {
+        return
+    }
     $target = Get-StagedMessagePath $StateDir $sequence $messageId
     if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
         [System.IO.File]::WriteAllText($target, $Line + "`n")

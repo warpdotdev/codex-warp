@@ -217,11 +217,63 @@ param(
     }
 }
 
+function Test-RootLifecycleDelivery {
+    . (Join-Path $repoRoot "plugins\orchestration\scripts\oz-parent-common.ps1")
+    $stateDir = Join-Path ([System.IO.Path]::GetTempPath()) "oz-lifecycle-$([guid]::NewGuid())"
+    $oldCli = $env:OZ_CLI
+    $oldRun = $env:OZ_RUN_ID
+    $oldParent = $env:OZ_PARENT_RUN_ID
+    try {
+        New-StateDir $stateDir
+        $fakeCli = Join-Path $stateDir "oz.ps1"
+        $log = Join-Path $stateDir "acks.txt"
+        'param([Parameter(ValueFromRemainingArguments=$true)][string[]]$CliArgs); Add-Content -LiteralPath (Join-Path $PSScriptRoot "acks.txt") -Value ($CliArgs -join " ")' |
+            Set-Content -LiteralPath $fakeCli
+        $env:OZ_CLI = $fakeCli
+        $env:OZ_RUN_ID = "root-run"
+        $env:OZ_PARENT_RUN_ID = ""
+        Assert-True (Test-OzHarnessAvailable) "Workload-backed root hooks should be active."
+
+        $notification = @{
+            event_type = "run_waited_on"
+            sequence = 42
+            message_id = "synthetic-wait"
+            sender_run_id = "child-run"
+            body = "Run child-run is waiting for you"
+        }
+        $notification | ConvertTo-Json -Compress |
+            Set-Content -LiteralPath (Get-StagedMessagePath $stateDir 42 "synthetic-wait")
+        $context = New-ParentContextFromStagedMessages $stateDir
+        Assert-True ($context.Context.Contains("Read-only lifecycle notification")) "Notification must be read-only."
+        Assert-True ($context.Context.Contains("Run child-run is waiting for you")) "Notification must name waiter."
+        Assert-True (-not $context.Context.Contains("authoritative")) "Waiter is not parent authority."
+        Confirm-AndRemoveStagedMessages $stateDir $context.SurfacedIds
+        Assert-True (-not (Test-Path -LiteralPath $log)) "Synthetic records must not call mailbox acknowledgments."
+        Assert-Equal 0 (Get-StagedMessageCount $stateDir) "Notification must be consumed locally."
+
+        @{ sequence = 43; message_id = "mail"; subject = "Update"; body = "Ordinary message" } |
+            ConvertTo-Json -Compress |
+            Set-Content -LiteralPath (Get-StagedMessagePath $stateDir 43 "mail")
+        $context = New-ParentContextFromStagedMessages $stateDir
+        Assert-True ($context.Context.Contains("Ordinary message")) "Ordinary messages must be preserved."
+        Confirm-AndRemoveStagedMessages $stateDir $context.SurfacedIds
+        Assert-True ((Get-Content -Raw -LiteralPath $log).Contains("mark-delivered mail")) "Mailbox delivery acknowledgment missing."
+        $env:OZ_RUN_ID = ""
+        Assert-True (-not (Test-OzHarnessAvailable)) "Hooks must stay inert outside Oz."
+    } finally {
+        $env:OZ_CLI = $oldCli
+        $env:OZ_RUN_ID = $oldRun
+        $env:OZ_PARENT_RUN_ID = $oldParent
+        Remove-Item -LiteralPath $stateDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 Test-PowerShellSyntax
 Test-WindowsHookCommands
 Test-WarpPayload
 Test-WarpConsoleWriterInterop
 Test-WarpHookEntryPoints
 Test-ListenerLaunchWithSpaces
+Test-RootLifecycleDelivery
 
 Write-Host "PowerShell hook tests passed."

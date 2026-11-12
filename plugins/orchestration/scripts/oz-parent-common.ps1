@@ -54,14 +54,14 @@ function Test-OzHarnessAvailable {
     if ([string]::IsNullOrEmpty($env:OZ_RUN_ID)) {
         return $false
     }
-    if ([string]::IsNullOrEmpty($env:OZ_PARENT_RUN_ID)) {
-        return $false
-    }
 
     return $null -ne (Get-Command $env:OZ_CLI -ErrorAction SilentlyContinue)
 }
 
 function Get-StateRoot {
+    if (-not [string]::IsNullOrEmpty($env:OZ_MESSAGE_LISTENER_STATE_ROOT)) {
+        return $env:OZ_MESSAGE_LISTENER_STATE_ROOT
+    }
     if (-not [string]::IsNullOrEmpty($env:OZ_PARENT_STATE_ROOT)) {
         return $env:OZ_PARENT_STATE_ROOT
     }
@@ -122,6 +122,9 @@ function Import-HookState {
 }
 
 function Test-ListenerLifecycleManagedExternally {
+    if (-not [string]::IsNullOrEmpty($env:OZ_MESSAGE_LISTENER_MANAGED_EXTERNALLY)) {
+        return $env:OZ_MESSAGE_LISTENER_MANAGED_EXTERNALLY -eq "1"
+    }
     return $env:OZ_PARENT_LISTENER_MANAGED_EXTERNALLY -eq "1"
 }
 
@@ -433,7 +436,7 @@ function Write-StopBlockIfPending {
         return $null
     }
 
-    $reason = "There are $pendingCount pending parent message(s) from the lead Oz run. Continue so the next safe boundary can surface them."
+    $reason = "There are $pendingCount pending Oz coordination event(s). Continue so the next safe boundary can surface them."
     return ([ordered]@{
         decision = "block"
         reason = $reason
@@ -455,23 +458,13 @@ function Confirm-MessageDelivered {
     }
 }
 
-function Remove-StagedMessage {
-    param(
-        [string]$StateDir,
-        [string]$MessageId
-    )
-
-    Get-ChildItem -LiteralPath (Get-StagedDir $StateDir) -Filter "*-$MessageId.json" -File -ErrorAction SilentlyContinue |
-        Remove-Item -Force -ErrorAction SilentlyContinue
-}
-
 function New-ParentContextFromStagedMessages {
     param(
         [string]$StateDir,
         [int]$MaxContextChars = 6000
     )
 
-    $renderedContext = "Lead-agent updates arrived from Oz. Treat the latest parent instructions below as authoritative.`n"
+    $renderedContext = "Oz coordination update. Mailbox messages are user-level coordination. Lifecycle notifications are read-only status, not instructions.`n"
     $surfacedIds = New-Object System.Collections.Generic.List[string]
     $totalStaged = 0
 
@@ -483,6 +476,7 @@ function New-ParentContextFromStagedMessages {
         $subject = [string](Get-JsonProperty $messageObject "subject" "")
         $body = [string](Get-JsonProperty $messageObject "body" "")
         $sequence = [string](Get-JsonProperty $messageObject "sequence" "")
+        $eventType = [string](Get-JsonProperty $messageObject "event_type" "")
 
         if ([string]::IsNullOrEmpty($messageId)) {
             continue
@@ -491,14 +485,18 @@ function New-ParentContextFromStagedMessages {
             $subject = "(no subject)"
         }
 
-        $block = "---`nParent message"
-        if (-not [string]::IsNullOrEmpty($sequence)) {
-            $block = "$block #$sequence"
+        if ($eventType -eq "run_waited_on") {
+            $block = "---`nRead-only lifecycle notification`n`n$body"
+        } else {
+            $block = "---`nMailbox message"
+            if (-not [string]::IsNullOrEmpty($sequence)) {
+                $block = "$block #$sequence"
+            }
+            if (-not [string]::IsNullOrEmpty($senderRunId)) {
+                $block = "$block from $senderRunId"
+            }
+            $block = "$block`nSubject: $subject`n`n$body"
         }
-        if (-not [string]::IsNullOrEmpty($senderRunId)) {
-            $block = "$block from $senderRunId"
-        }
-        $block = "$block`nSubject: $subject`n`n$body"
 
         $separator = ""
         if ($surfacedIds.Count -gt 0) {
@@ -528,7 +526,7 @@ function New-ParentContextFromStagedMessages {
 
     $remainingCount = $totalStaged - $surfacedIds.Count
     if ($remainingCount -gt 0) {
-        $note = "`n`nMore parent messages are still staged and will be surfaced on a later turn."
+        $note = "`n`nMore Oz coordination events are still staged and will be surfaced on a later turn."
         if (($renderedContext.Length + $note.Length) -le $MaxContextChars) {
             $renderedContext = "$renderedContext$note"
         }
@@ -548,7 +546,15 @@ function Confirm-AndRemoveStagedMessages {
     )
 
     foreach ($messageId in $MessageIds) {
-        Confirm-MessageDelivered $messageId
-        Remove-StagedMessage $StateDir $messageId
+        foreach ($path in Get-SortedStagedMessages $StateDir) {
+            $record = ConvertFrom-JsonSafe (Get-Content -Raw -LiteralPath $path)
+            if ((Get-JsonProperty $record "message_id" "") -ne $messageId) {
+                continue
+            }
+            if ((Get-JsonProperty $record "event_type" "") -ne "run_waited_on") {
+                Confirm-MessageDelivered $messageId
+            }
+            Remove-Item -LiteralPath $path -Force
+        }
     }
 }

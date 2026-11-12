@@ -17,7 +17,11 @@ tests/notification_conpty_test.py         Isolated Windows ConPTY delivery tests
 ```
 ## Plugins
 - `warp`: `SessionStart`, `Stop`, `PermissionRequest`, `UserPromptSubmit`, `PostToolUse` notifications for Warp.
-- `orchestration`: `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `Stop`, `SessionEnd` parent-message delivery for Codex child runs, plus Oz skills.
+- `orchestration`: `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `Stop`, `SessionEnd` coordination delivery for Oz root and child runs, plus Oz skills.
+Mailbox messages remain user-level coordination. Read-only `run_waited_on` lifecycle
+notifications say “Run {id} is waiting for you,” with the waiter identified independently
+of parent/child direction. These synthetic records never call mailbox delivery APIs.
+Hooks require `OZ_CLI` and `OZ_RUN_ID` and remain inert outside Oz.
 Hook commands use `${PLUGIN_ROOT}/scripts/...`; Windows overrides use Codex's `commandWindows` hook field to run `.ps1` entrypoints.
 ## Local install
 ```sh
